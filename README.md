@@ -1,7 +1,7 @@
 # Better-Itch.io-Library
 A better way to browse, sort, and search your purchased and claimed games on Itch.io
 
-NOTE:! As of 2026/8/1 this code is working but I have removed the windows executable due to the discovery of a potential security issue, the python version is now functional thanks to the edit made by jcdietrich and should be used for now. I will add a new release when I have time to work on version 1.1
+NOTE:! As of 2026/1/8 this code is working but I have removed the windows executable due to the discovery of a potential security issue, the python version is now functional thanks to the edit made by jcdietrich and should be used for now. I will add a new release when I have time to work on version 1.1
 
 Features:
 * Fully Searchable and Sortable, with the option to filter by Category, Genre, and Tags simultaneously. 
