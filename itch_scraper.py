@@ -15,7 +15,7 @@ games_data = []
 for i, thumb_block in enumerate(thumb_blocks, start=1):
     print(f"[{i}/{len(thumb_blocks)}] Processing game...")
     img_tag = thumb_block.find("img")
-    thumbnail_url = img_tag["src"] if img_tag else ""
+    thumbnail_url = img_tag["data-lazy_src"] if img_tag else ""
     game_data_block = thumb_block.find_next_sibling("div", class_="game_cell_data")
     if not game_data_block:
         continue
