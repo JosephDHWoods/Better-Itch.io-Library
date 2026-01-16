@@ -85,6 +85,8 @@ def fetch_itch_library(gui_confirmation=None):
             with open(html_path, "w", encoding="utf-8") as f:
                 f.write(content)
             print(f"Success! Saved to: {html_filename}")
+            run_scraper_conversion()
+            generate_gallery()
         else:
             print("Cancelled by user.")
             
@@ -110,6 +112,3 @@ def generate_gallery():
 
 if __name__ == "__main__":
     fetch_itch_library()
-    if os.path.exists(html_path):
-        run_scraper_conversion()
-        generate_gallery()
