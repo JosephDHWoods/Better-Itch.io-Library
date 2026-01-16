@@ -4,6 +4,10 @@ import sys
 import subprocess
 from playwright.sync_api import sync_playwright
 
+# Import the other scripts directly so the EXE can find them!
+from scripts import itch_scraper
+from scripts import csv_to_html_gallery
+
 # Settings
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__)) # .../scripts
 ROOT_DIR   = os.path.dirname(SCRIPT_DIR)                # .../MyItchLibrary
@@ -11,38 +15,6 @@ DATA_DIR   = os.path.join(ROOT_DIR, "data")             # .../MyItchLibrary/data
 html_filename  = "My purchases - itch.io.htm"
 html_path      = os.path.join(DATA_DIR, html_filename)
 user_data_path = os.path.join(DATA_DIR, "itch_user_data")
-
-# Helper to run the other scripts and show their output in the GUI, probably should be the same file as itch_gui but let's call it~
-# M~O~D~U~L~A~R~E
-def run_script(script_name):
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR)
-        print(f"Created missing data folder at: {DATA_DIR}")
-
-    script_full_path = os.path.join(SCRIPT_DIR, script_name)
-    
-    env = os.environ.copy()
-    env["PYTHONIOENCODING"] = "utf-8"
-
-    process = subprocess.Popen(
-        [sys.executable, "-u", script_full_path], 
-        # CRITICAL: We run in ROOT_DIR so relative paths work nicely
-        cwd=ROOT_DIR,
-        stdout=subprocess.PIPE, 
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-        universal_newlines=True,
-        encoding="utf-8", 
-        env=env           
-    )
-    
-    for line in process.stdout:
-        print(line, end='') 
-
-    process.wait()
-    if process.returncode != 0:
-        raise Exception(f"{script_name} crashed (Error code {process.returncode})")
 
 def fetch_itch_library(gui_confirmation=None):
     print("Starting browser automation...")
@@ -121,7 +93,8 @@ def fetch_itch_library(gui_confirmation=None):
 def run_scraper_conversion():
     print("\n5. Running Scraper (HTML -> CSV)...")
     try:
-        run_script("itch_scraper.py")
+        # Calling the function directly instead of subprocess
+        itch_scraper.run_scraper()
         print("CSV conversion done.")
     except Exception as e:
         print(f"Error running scraper: {e}")
@@ -129,7 +102,8 @@ def run_scraper_conversion():
 def generate_gallery():
     print("\n6. Building Gallery (CSV -> HTML)...")
     try:
-        run_script("csv_to_html_gallery.py")
+        # Calling the function directly instead of subprocess
+        csv_to_html_gallery.main()
         print("\nAll done! You can open 'itch_catalog.html' now.")
     except Exception as e:
         print(f"Error generating gallery: {e}")
