@@ -1,30 +1,82 @@
-# Better-Itch.io-Library
-A better way to browse, sort, and search your purchased and claimed games on Itch.io
+Better-Itch.io-Library (VERSION 2.0)
 
-NOTE:! As of 2026/1/8 this code is working but I have removed the windows executable due to the discovery of a potential security issue, the python version is now functional thanks to the edit made by jcdietrich and should be used for now. I will add a new release when I have time to work on version 1.1
+A better way to browse, sort, and search your purchased and claimed games on Itch.io.
 
-Features:
-* Fully Searchable and Sortable, with the option to filter by Category, Genre, and Tags simultaneously. 
-* Collapsable Game descriptions and expanding Cover art
-* Filter out free and Pay what you want games 
-* Game titles link directly to the store page
-* Number in parenthesis next to the title shows how many times you've claimed that game from bundles.
-![alt text](image.png)
-![alt text](image-1.png)
-![alt text](image-2.png)
+WE ARE BACK! After taking the previous build down to address some security/stability concerns, I've rewritten a lot of the tool from the ground up. Version 2 is faster, smarter, and finally has a proper GUI so you don't have to mess around with command lines if you don't want to.
+* What's New in V2?
 
-Instructions:
-1. Load your Itch.Io library in a webpage (Not the Itch App), https://itch.io/my-purchases and scroll all the way to the bottom, making sure every single item is loaded.
-2. Right Click on the Page and choose Save Page As, and save to a folder as My purchases - itch.io.htm (this should be the default name.)
-3. Extract the desired folder to the same place you saved the library HTML.
-3.5. Python only:install required dependencies
-          pip install beautifulsoup4
-          pip install selenium
-          pip install requests
-4. Run itch_scraper in the same folder at My purchases - itch.io.htm, depending on the size of your library this could take a while
-5. After the CSV file is created, run csv_to_html_gallery, This will create and HTML page that can be loaded in a browser.
+  * No More Manual Saving: You no longer have to right-click and "Save As..." The new tool opens a browser window, logs you in, and scrolls the library for you automatically.
 
+  * Actual GUI: Added a dark-mode interface that shows you exactly what the scraper is doing in real-time.
 
-ToDo:
-1. Make it so running the scraper again only adds new games to the file, reducing the amount of time it takes to update your library
-2. Add a way to hide games so you only see the ones you want,
+  * Smart Updates: The scraper now remembers where it left off. If you buy 5 new games, it won't re-scan your entire 2,000 game library—it just grabs the new stuff.
+
+  * Visual Overhaul:
+
+    * Added "Rainbow Chips" for tags and genres—they are color-coded based on the text so you can spot "Horror" or "TTRPG" at a glance.
+
+    * Added a less obnoxious zoom effect to the thumbnails.
+
+  * Robustness: Fixed the crashing issues with emojis and Japanese characters in game titles.
+
+* Features
+
+  * Offline Library: Generates a single, portable HTML file you can keep anywhere.
+
+  * Deep Search: Filter by Category, Genre, Tags, and Paid/Free status simultaneously.
+
+  * Actually Sortable: So you can view your games in an order other than purchase date
+
+![Gui](previews/Gui.png)
+![Library](previews/Library.png)
+![RobustSearching](previews/RobustSearching.png)
+![MultipleFilters](previews/MultipleFilters.png)
+
+* How to Install & Run
+  * Option A: Windows Executable
+
+    * Download the latest .zip from the Releases tab on the right.
+
+    * Extract the folder to your desktop (or wherever you want your library to live).
+
+    * Run ItchLibraryManager.exe.
+
+  * First Run Note: The program will pause for about a minute on the very first launch while it downloads the necessary browser drivers (Chromium) in the background. It might look frozen, just give it a moment!
+
+* Option B: Raw Python (Mac/Linux/Windows)
+
+  * If you prefer running from source or want to modify the code:
+
+  * Clone or download this repository.
+
+  * Open a terminal in the folder and install the dependencies:
+
+  * >pip install requests beautifulsoup4 playwright
+
+    * Important: You need to install the browser binaries for Playwright:
+
+    * >playwright install chromium
+
+  * Run the GUI: python itch_gui.py
+
+* How to Use
+
+  * Click RUN FULL UPDATE.
+  
+  * A browser window will pop up. Log in to your Itch.io account.
+
+  * The script will take over and scroll to the bottom of your library.
+
+  * Once it's done, check the browser window to make sure it reached the end, then click Yes on the popup.
+
+  * Wait for the Scraper and Generator to finish.
+
+  * Open itch_catalog.html to view your library!
+
+* ToDo / Future Plans for the 3.0 drop
+
+  * Add a "Hide Game" feature for the HTML gallery (for those bundle games you know you'll never play).
+
+  * Add a persistant collections system so you can organize your games into custom groups
+
+  * Intergration with Itch.io Desktop to go straight to a games install screen with the click of a button
