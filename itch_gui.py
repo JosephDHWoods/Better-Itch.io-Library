@@ -27,7 +27,7 @@ class ItchLibraryApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Itch.io Library Manager")
-        self.root.geometry("700x550")
+        self.root.geometry("700x570") # Made slightly taller for the credits
         self.root.configure(bg="#2d2d2d")
 
         try:
@@ -78,7 +78,7 @@ class ItchLibraryApp:
             root, state='disabled', height=15, 
             bg="#1a1a1a", fg="#00ff00", font=("Consolas", 10)
         )
-        self.log_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        self.log_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 5))
         
         # Colors for different log levels (if needed)
         self.log_text.tag_config('INFO', foreground='#00ff00')
@@ -93,6 +93,16 @@ class ItchLibraryApp:
         # I hate TKINTER so much
         self.btn_view_result = ttk.Button(self.bottom_frame, text="View Catalog", command=self.view_catalog)
         self.btn_view_result.pack(side=tk.RIGHT, padx=10)
+
+        # --- CREDITS LABEL ---
+        self.credits_label = tk.Label(
+            root, 
+            text="Code by Joseph Woods - 2026", 
+            bg="#2d2d2d", 
+            fg="#555", 
+            font=("Segoe UI", 8)
+        )
+        self.credits_label.pack(side=tk.BOTTOM, pady=(0, 5))
 
         # Wow output so we can see what's going on! Hijack print() and send it to our text box instead (Wish I added this earlier, this was added LAST. Good job me)
         sys.stdout = TextRedirector(self.log_text, "INFO")
