@@ -3,6 +3,37 @@ import time
 import os
 import requests
 from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+# --- OPTIMIZATION: SAFE FASTEST SESSION ---
+# Use a Session with Retry logic to reuse TCP connections and handle rate limits automatically.
+# (Huge speedup for SSL handshakes, cutting the old scrape time for my library down from almost 3 hours)
+def create_safe_session():
+    session = requests.Session()
+    
+    # Retry strategy:
+    # total=3: Try 3 times before giving up
+    # backoff_factor=1: Sleep 1s, then 2s, then 4s if errors occur
+    # status_forcelist=[429]: Activates specifically when Itch says "Slow Down"
+    retry_strategy = Retry(
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["HEAD", "GET", "OPTIONS"]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    
+    # Set a browser-like User-Agent so we look less suspicious
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    })
+    return session
+
+# Initialize our smart session
+session = create_safe_session()
 
 # Function to go visit the actual game page and get the extra data
 # We need this because the "My Purchases" list doesn't have Tags, Genre, or Price.
@@ -17,8 +48,14 @@ def get_extra_details(game_name, url):
     }
 
     try:
-        response = requests.get(url, timeout=10)
-        soup = BeautifulSoup(response.text, "html.parser")
+        # Use session.get instead of requests.get to use the Keep-Alive connection
+        response = session.get(url, timeout=10)
+        
+        # --- THE FIX ---
+        # We use .content (raw bytes) instead of .text
+        # This lets BeautifulSoup detect the correct encoding (UTF-8)
+        # instead of requests guessing (and often failing with) ISO-8859-1
+        soup = BeautifulSoup(response.content, "html.parser")
 
         # 1. Get the info panel (Genre, Tags, etc)
         # Itch usually puts these in a table with class 'game_info_panel_widget' but sometimes it misses tags for some reason?
@@ -68,8 +105,8 @@ def get_extra_details(game_name, url):
         # ~Pipe~Bomb~
         print(f"   Note: Couldn't get details for '{game_name}' ({e})")
     
-    # Sleep for 1 second so we don't hammer the server and get blocked
-    time.sleep(1) 
+    # Sleep for 0.1 second (Safe Fastest speed thanks to Retry logic)
+    time.sleep(0.1) 
     # Don't be Suspicious~ Don't be Suspicious! 
     return data
 
