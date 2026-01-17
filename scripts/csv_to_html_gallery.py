@@ -65,6 +65,47 @@ html_header = f"""<!DOCTYPE html>
         filter: brightness(0.95);
         cursor: pointer;
     }}
+
+    /* Rank Chip (The Number Bubble) */
+    .rank-chip {{
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+      color: #444;
+      border: 2px solid #ccc; /* Default, overridden inline */
+      min-width: 30px;
+      text-align: center;
+      background-color: rgba(255,255,255,0.5);
+    }}
+    
+    /* Description Styles - because reading 14k chars in a table cell is a crime */
+    summary.desc-toggle {{
+        cursor: pointer;
+        color: #007bff;
+        font-size: 0.85em;
+        font-weight: bold;
+        user-select: none;
+        margin-top: 4px;
+        display: inline-block;
+    }}
+    summary.desc-toggle:hover {{ text-decoration: underline; }}
+    
+    /* The scrollable box of doom */
+    .desc-box {{
+        margin-top: 6px;
+        padding: 10px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        max-height: 250px; /* Stops the row from becoming 10 miles high */
+        overflow-y: auto;
+        white-space: pre-wrap; /* Keeps the newlines from the CSV */
+        font-size: 0.9em;
+        line-height: 1.5;
+        color: #333;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    }}
     
     /* Hidden reset button */
     #clear-filter {{
@@ -79,23 +120,62 @@ html_header = f"""<!DOCTYPE html>
       margin-bottom: 10px;
     }}
     #clear-filter:hover {{ background-color: #cc0000; }}
+
+    /* Alphabet Toolbar Styles */
+    .alpha-bar {{
+        margin-bottom: 15px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }}
+    .alpha-btn {{
+        padding: 5px 10px;
+        background: #eee;
+        border: 1px solid #ddd;
+        cursor: pointer;
+        font-size: 0.9em;
+        border-radius: 3px;
+        min-width: 30px;
+    }}
+    .alpha-btn:hover {{ background: #ddd; }}
+    .alpha-btn.active {{ background: #007bff; color: white; border-color: #0056b3; }}
+
+    /* Page Jumper Input Style */
+    .page-jump-container {{
+        margin-right: 15px;
+        font-size: 0.9em;
+        color: #333;
+        display: inline-block;
+    }}
+    .page-jump-input {{
+        width: 50px;
+        padding: 2px;
+        margin-left: 5px;
+        text-align: center;
+        border: 1px solid #aaa;
+        border-radius: 3px;
+    }}
   </style>
 </head>
 <body>
 <h1>Itch.io Game Library</h1>
+
+<div class="alpha-bar" id="alpha-bar">
+    </div>
 
 <button id="clear-filter">Reset Filters</button>
 
 <table id="games" class="display" style="width:100%">
   <thead>
     <tr>
-      <th style="width: 130px;">Image</th> 
-      <th>Game Name</th>
-      <th>Author</th>
-      <th>Category</th>
-      <th>Genre</th>
-      <th>Tags</th>
-      <th>Price</th>
+      <th style="width: 100px;">Image</th> 
+      <th style="width: auto;">Game Name</th>
+      <th style="width: 120px;">Author</th>
+      <th style="width: 85px;">Category</th>
+      <th style="width: 100px;">Genre</th>
+      <th style="width: 150px;">Tags</th>
+      <th style="width: 90px;">Price</th>
+      <th style="width: 50px;" title="Lower number = Oldest Acquisition">Added</th>
     </tr>
   </thead>
   <tbody>
@@ -123,6 +203,30 @@ def get_pastel_color(text): # This was so unnecesary
     
     return f"#{r:02x}{g:02x}{b:02x}"
 
+# 10 Colors for the Rank Gradient (0-9)
+RANK_COLORS = [
+    "#FF5252", # 0 Red
+    "#FF7043", # 1 Orange
+    "#FBC02D", # 2 Yellow/Gold
+    "#66BB6A", # 3 Green
+    "#26A69A", # 4 Teal
+    "#00BCD4", # 5 Cyan
+    "#42A5F5", # 6 Blue
+    "#5C6BC0", # 7 Indigo
+    "#AB47BC", # 8 Purple
+    "#EC407A"  # 9 Pink
+]
+
+# Helper to calculate the Digital Root of a number
+def get_digital_root(n):
+    # I literally could have just used "n % 10" to get the last digit and it would have worked fine.
+    # But instead I decided to implement Digital Roots because I watched a math video at 3am once.
+    # Now your browser has to do recursion for every single row in the table. You're welcome.
+    if n == 0: return 0
+    while n > 9:
+        n = sum(int(digit) for digit in str(n))
+    return n
+
 # The javascript magic for sorting and searching, This part of the code was shamelessly stolen from Brian, Thank you Brian.
 # He made it to build a magic the gathering card database for his collection but It deserved a better home than MTG so here it is.
 html_footer = f"""
@@ -132,6 +236,19 @@ html_footer = f"""
   <script src="{datatables_js}"></script>
   <script>
   $(document).ready(function(){{
+    
+    // --- SETUP ALPHABET BAR ---
+    const bar = $('#alpha-bar');
+    // Button for Symbols/Other (Start with anything NOT a-z or 0-9)
+    bar.append(`<button class="alpha-btn" data-regex="^[^a-zA-Z0-9]">!.?</button>`);
+    // Button for Numbers (Starts with 0-9)
+    bar.append(`<button class="alpha-btn" data-regex="^[0-9]">0-9</button>`);
+    // Buttons for A-Z
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    letters.forEach(l => {{
+        bar.append(`<button class="alpha-btn" data-regex="^${{l}}">${{l}}</button>`);
+    }});
+
     // Initialize DataTables
     const table = $('#games').DataTable({{
       orderCellsTop: true,
@@ -143,6 +260,36 @@ html_footer = f"""
         const bg = index % 2 === 0 ? '#ffffff' : '#f9f9f9';
         $(row).css('background-color', bg);
       }},
+      // --- PAGE JUMPER LOGIC ---
+      drawCallback: function() {{
+          // Check if we need to add the input (target the pagination container)
+          var paginate = $(this).closest('.dataTables_wrapper').find('.dataTables_paginate');
+          
+          if (paginate.length > 0 && paginate.find('.page-jump-input').length === 0) {{
+             var info = this.api().page.info();
+             
+             // Create the input element
+             var jumper = $('<span class="page-jump-container">Go to: <input type="number" class="page-jump-input" min="1" max="'+info.pages+'" value="'+(info.page+1)+'"></span>');
+             
+             // Prepend it so it sits to the left of the Prev/Next buttons
+             paginate.prepend(jumper);
+             
+             // Bind the change event
+             jumper.find('input').on('change keyup', function(e){{
+                 // Only jump on Enter or Click-away, or if it's a valid number
+                 if (e.type === 'keyup' && e.key !== 'Enter') return;
+                 
+                 var p = parseInt(this.value) - 1;
+                 if (!isNaN(p) && p >= 0 && p < info.pages) {{
+                     table.page(p).draw('page');
+                 }}
+             }});
+          }} else {{
+             // Just update the number if the input exists (e.g. user clicked Next)
+             var info = this.api().page.info();
+             paginate.find('.page-jump-input').val(info.page + 1);
+          }}
+      }},
       columnDefs: [{{
         targets: 6, // Price column sorting fix
         render: function(data,type) {{
@@ -152,7 +299,33 @@ html_footer = f"""
           }}
           return data;
         }}
+      }},
+      {{
+        targets: 7, // Rank column sorting fix (strip HTML)
+        render: function(data,type) {{
+          if (type==='sort' || type==='type') {{
+             // Grab just the number inside the span
+             const num = data.replace(/<[^>]+>/g,'');
+             return parseInt(num) || 0;
+          }}
+          return data;
+        }}
       }}]
+    }});
+
+    // --- ALPHABET FILTER LOGIC ---
+    $('.alpha-btn').on('click', function(){{
+        // Highlight active button
+        $('.alpha-btn').removeClass('active');
+        $(this).addClass('active');
+
+        let regex = $(this).data('regex');
+        
+        // Filter Column 1 (Game Name) using Regex
+        // true (regex), false (smart search off)
+        table.column(1).search(regex, true, false).draw();
+        
+        $('#clear-filter').show();
     }});
 
     // Create the input row at the top
@@ -186,6 +359,10 @@ html_footer = f"""
       else if (i === 6) {{
         $(this).html('<label><input type="checkbox" id="paid-filter"/> Paid?</label>')
                .find('label').on('click', e => e.stopPropagation());
+      }}
+      // New "Added" Column (Column 7) - No Search Input needed
+      else if (i === 7) {{
+        $(this).html(''); 
       }}
       // Standard text search for everything else
       else {{
@@ -234,7 +411,8 @@ html_footer = f"""
       $('#games thead tr:eq(1) th input[type=text]').val('');
       $('#games thead tr:eq(1) th select').val('All');
       $('#paid-filter').prop('checked',false).trigger('change');
-      table.columns().search('').draw();
+      $('.alpha-btn').removeClass('active'); // Clear active alphabet
+      table.search('').columns().search('').draw();
       $(this).hide();
     }});
   }});
@@ -275,24 +453,53 @@ def make_chips(cell):
 def build_rows(path):
     # Groups games by name+link so we can handle duplicates since itch allows them (For some reason)
     groups = defaultdict(list)
+    game_rank_map = {} # Stores the calculated rank for each game
 
     if not path.exists():
-        return "<tr><td colspan='7'>Error: CSV file not found.</td></tr>"
+        return "<tr><td colspan='8'>Error: CSV file not found.</td></tr>"
 
     with path.open(newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        for record in reader:
-            # Create a unique key for the game
+        
+        # WE NEED TO READ EVERYTHING FIRST TO ESTABLISH ORDER
+        # Since CSV is Newest -> Oldest, we iterate BACKWARDS (Oldest -> Newest)
+        all_rows = list(reader)
+        
+        current_rank = 1
+        
+        # Start from the bottom (Oldest purchase)
+        for record in reversed(all_rows):
             name = record.get("Game Name", "").strip()
             link = record.get("Game Page Link", "").strip()
-            groups[(name, link)].append(record)
+            key = (name, link)
+            
+            # If we haven't seen this game yet, assign it the current rank
+            if key not in game_rank_map:
+                game_rank_map[key] = current_rank
+                current_rank += 1
+            
+            # If we HAVE seen it, we do nothing (skipping it). 
+            # This preserves the rank from the first (oldest) time we saw it.
+            
+            # Add to groups for display
+            groups[key].append(record)
 
     rows = []
     
-    # Sort by game name
+    # Sort by game name alphabetically for the default view
     for (game_name, page_link), records in sorted(groups.items()):
         count = len(records)
         first = records[0] # Just use the first entry for info
+        
+        # Get the rank we calculated (this will be the oldest rank)
+        rank_num = game_rank_map.get((game_name, page_link), 999999)
+        
+        # Calculate the index for the color array using Digital Root
+        digit_index = get_digital_root(rank_num)
+        border_col = RANK_COLORS[digit_index]
+
+        # Create the visual chip
+        rank_html = f'<span class="rank-chip" style="border-color: {border_col};">{rank_num}</span>'
         
         # IMPORTANT: Added loading="lazy" to prevent browser crash on large libraries over 600 items
         thumb_url = first.get("Thumbnail", "")
@@ -310,8 +517,10 @@ def build_rows(path):
         description = safe_html(first.get("Description", ""))
         if description and description != "N/A":
             details_html = (
-                f'<details style="margin-top:4px;"><summary style="cursor:pointer;">Description</summary>'
-                f'<div style="margin-top:6px; white-space:pre-wrap; font-size:0.9em; line-height:1.4;">{description}</div></details>'
+                f'<details style="margin-top:2px;">'
+                f'<summary class="desc-toggle">Description</summary>'
+                f'<div class="desc-box">{description}</div>'
+                f'</details>'
             )
         else:
             details_html = ""
@@ -326,6 +535,7 @@ def build_rows(path):
         price    = safe_text(first.get("Price", ""))
 
         # Create the table row
+        # Added the 'rank_html' as the last column
         row_html = f"""
         <tr>
           <td>{img}</td>
@@ -335,6 +545,7 @@ def build_rows(path):
           <td>{genre}</td>
           <td>{tags}</td>
           <td>{price}</td>
+          <td style="text-align:center;">{rank_html}</td>
         </tr>
         """.rstrip()
         rows.append(row_html)
